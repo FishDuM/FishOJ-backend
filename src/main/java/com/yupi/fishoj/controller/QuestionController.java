@@ -91,15 +91,16 @@ public class QuestionController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = userService.getLoginUser(request);
+        // todo
+//        User user = userService.getLoginUser(request);
         long id = deleteRequest.getId();
         // 判断是否存在
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可删除
-        if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        // 仅本人或管理员可删除 todo
+//        if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+//            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+//        }
         boolean b = questionService.removeById(id);
         return ResultUtils.success(b);
     }
@@ -146,6 +147,55 @@ public class QuestionController {
      * @param id
      * @return
      */
+    @GetMapping("/get")
+    public BaseResponse<QuestionGetRequest> getQuestionById(long id, HttpServletRequest request) {
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Question question = questionService.getById(id);
+        if (question == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        // 判断题目是否为自己创建或自己为管理员
+        if (!question.getUserId().equals(loginUser.getId()) || !userService.isAdmin(request)){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        QuestionGetRequest questionGetRequest = new QuestionGetRequest();
+        BeanUtils.copyProperties(question, questionGetRequest);
+
+        String judgeCase = question.getJudgeCase();
+        if (judgeCase != null){
+            questionGetRequest.setJudgeCase(JSONUtil.toList(judgeCase, JudgeCase.class));
+        }
+        String tags = question.getTags();
+        if (tags != null){
+            questionGetRequest.setTags(JSONUtil.toList(tags, String.class));
+        }
+
+        String judgeConfig = question.getJudgeConfig();
+        if (judgeConfig != null){
+            JudgeConfig config = JSONUtil.toBean(judgeConfig, JudgeConfig.class);
+            if (config.getMemoryLimit() == null){
+                config.setMemoryLimit(0L);
+            }
+            if (config.getStackLimit() == null){
+                config.setStackLimit(0L);
+            }
+            if (config.getTimeLimit() == null){
+                config.setTimeLimit(0L);
+            }
+            questionGetRequest.setJudgeConfig(config);
+        }
+        return ResultUtils.success(questionGetRequest);
+    }
+
+    /**
+     * 根据 id 获取 (脱敏)
+     *
+     * @param id
+     * @return
+     */
     @GetMapping("/get/vo")
     public BaseResponse<QuestionVO> getQuestionVOById(long id, HttpServletRequest request) {
         if (id <= 0) {
@@ -165,7 +215,8 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    // todo
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
