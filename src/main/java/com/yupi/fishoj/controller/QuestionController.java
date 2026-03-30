@@ -91,16 +91,15 @@ public class QuestionController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo
-//        User user = userService.getLoginUser(request);
+        User user = userService.getLoginUser(request);
         long id = deleteRequest.getId();
         // 判断是否存在
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可删除 todo
-//        if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
-//            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-//        }
+        // 仅本人或管理员可删除
+        if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
         boolean b = questionService.removeById(id);
         return ResultUtils.success(b);
     }
@@ -215,8 +214,7 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/list/page")
-    // todo
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
